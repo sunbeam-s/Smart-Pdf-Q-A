@@ -3,9 +3,10 @@ from google.genai import types
 from llama_index.readers.file import PDFReader
 from llama_index.core.node_parser import SentenceSplitter
 from dotenv import load_dotenv
+from pathlib import Path
 import os
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 client = genai.Client(api_key=os.getenv("GENAI_API_KEY"))
 EMBED_MODEL = "gemini-embedding-001"

@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import uuid
+from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 import inngest
@@ -11,7 +12,7 @@ from data_loader import load_and_chunk_pdf, embed_texts
 from vector_db import Qdrant_storage
 from custom_types import RAGChunkandSrc, RAGSearchResult, RAGUpsertResult, RAGQueryResult
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 inngest_client = inngest.Inngest(
     app_id="rag_app",
@@ -74,22 +75,21 @@ async def rag_query_pdf_ai(ctx: inngest.Context):
         auth_key=os.getenv("GENAI_API_KEY"),
         model="gemini-3.5-flash",
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        
     )
 
     res = await ctx.step.ai.infer(
-    "llm-answer",
-    adapter=adapter,
-    body={
-        "model": "gemini-3.5-flash",
-        "max_tokens": 512,
-        "temperature": 0.2,
-        "messages": [
-            {"role": "system", "content": "You answer questions using only the provided context."},
-            {"role": "user", "content": user_content}
-        ]
-    }
-)
+        "llm-answer",
+        adapter=adapter,
+        body={
+            "model": "gemini-3.5-flash",
+            "max_tokens": 512,
+            "temperature": 0.2,
+            "messages": [
+                {"role": "system", "content": "You answer questions using only the provided context."},
+                {"role": "user", "content": user_content}
+            ]
+        }
+    )
 
     answer = res["choices"][0]["message"]["content"].strip()
     return {"answer": answer, "sources": found.sources, "num_contexts": len(found.context)}
