@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 import requests
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 st.set_page_config(page_title="PDF Q&A", page_icon="📄", layout="centered")
 
@@ -182,7 +182,12 @@ def khuj_loader(text="Khujtechi"):
 
 @st.cache_resource
 def get_inngest_client() -> inngest.Inngest:
-    return inngest.Inngest(app_id="rag_app", is_production=False)
+    event_key = os.getenv("INNGEST_EVENT_KEY")
+    return inngest.Inngest(
+        app_id="rag_app",
+        is_production=bool(event_key),
+        event_key=event_key,
+    )
 
 
 def save_uploaded_pdf(file) -> Path:
@@ -221,12 +226,14 @@ async def send_rag_query_event(question: str, top_k: int) -> str:
 
 
 def _inngest_api_base() -> str:
-    return os.getenv("INNGEST_API_BASE", "http://127.0.0.1:8288/v1")
+    return os.getenv("INNGEST_API_BASE", "https://api.inngest.com/v1")
 
 
 def fetch_runs(event_id: str) -> list[dict]:
     url = f"{_inngest_api_base()}/events/{event_id}/runs"
-    resp = requests.get(url)
+    event_key = os.getenv("INNGEST_EVENT_KEY", "")
+    headers = {"Authorization": f"Bearer {event_key}"} if event_key else {}
+    resp = requests.get(url, headers=headers)
     resp.raise_for_status()
     data = resp.json()
     return data.get("data", [])
@@ -256,7 +263,7 @@ st.header("1. PDF ta Upload Koren")
 uploaded = st.file_uploader("Ekta PDF chose koren", type=["pdf"], accept_multiple_files=False)
 
 if uploaded is not None:
-    if st.button("🚀 Ingest Kore Den!(ekta pdf sudhu matro ekbar inngest korlei jothesto)"):
+    if st.button("🚀 Ingest Kore Den! (ekta pdf sudhu matro ekbar inngest korlei jothesto)"):
         loader_slot = st.empty()
         with loader_slot.container():
             khuj_loader("Upload hocche")
@@ -272,7 +279,7 @@ st.header("2. ki jante chacchen?!")
 with st.form("rag_query_form"):
     question = st.text_input("ki jante chacchen?!")
     top_k = st.number_input("Koto ta chunk khujbo? (optional)", min_value=1, max_value=20, value=5, step=1)
-    submitted = st.form_submit_button("✨Here is the answer!")
+    submitted = st.form_submit_button("✨ Here is the answer!")
 
 if submitted and question.strip():
     loader_slot = st.empty()

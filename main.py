@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import uuid
@@ -17,13 +16,11 @@ load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 _signing_key = os.getenv("INNGEST_SIGNING_KEY")
 _event_key = os.getenv("INNGEST_EVENT_KEY")
 
-is_dev = os.getenv("INNGEST_DEV", "false").lower() == "true"
-
 inngest_client = inngest.Inngest(
     app_id="rag_app",
     logger=logging.getLogger("uvicorn"),
-    is_production=not is_dev and bool(_signing_key),
-    signing_key=_signing_key if not is_dev else None,
+    is_production=bool(_signing_key),
+    signing_key=_signing_key,
     event_key=_event_key,
     serializer=inngest.PydanticSerializer(),
 )

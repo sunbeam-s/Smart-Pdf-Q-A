@@ -8,11 +8,21 @@ import os
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
-client = genai.Client(api_key=os.getenv("GENAI_API_KEY"))
 EMBED_MODEL = "gemini-embedding-001"
 EMBED_DIM = 3072
 
 splitter = SentenceSplitter(chunk_size=1000, chunk_overlap=200)
+
+_client = None
+
+def get_client():
+    global _client
+    if _client is None:
+        api_key = os.getenv("GENAI_API_KEY")
+        if not api_key:
+            raise ValueError("GENAI_API_KEY environment variable is not set")
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 def load_and_chunk_pdf(path: str):
     docs = PDFReader().load_data(file=path)
@@ -23,7 +33,7 @@ def load_and_chunk_pdf(path: str):
     return chunks
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    response = client.models.embed_content(
+    response = get_client().models.embed_content(
         model=EMBED_MODEL,
         contents=texts,
         config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
