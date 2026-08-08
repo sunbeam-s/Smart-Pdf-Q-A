@@ -14,10 +14,17 @@ from custom_types import RAGChunkandSrc, RAGSearchResult, RAGUpsertResult, RAGQu
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
+_signing_key = os.getenv("INNGEST_SIGNING_KEY")
+_event_key = os.getenv("INNGEST_EVENT_KEY")
+
+is_dev = os.getenv("INNGEST_DEV", "false").lower() == "true"
+
 inngest_client = inngest.Inngest(
     app_id="rag_app",
     logger=logging.getLogger("uvicorn"),
-    is_production=False,
+    is_production=not is_dev and bool(_signing_key),
+    signing_key=_signing_key if not is_dev else None,
+    event_key=_event_key,
     serializer=inngest.PydanticSerializer(),
 )
 
@@ -83,7 +90,7 @@ async def rag_query_pdf_ai(ctx: inngest.Context):
         body={
             "model": "gemini-3.5-flash",
             "max_tokens": 512,
-            "temperature": 0.2,
+            "temperature": 0.3,
             "messages": [
                 {"role": "system", "content": "You answer questions using only the provided context."},
                 {"role": "user", "content": user_content}

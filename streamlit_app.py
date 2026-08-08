@@ -256,7 +256,7 @@ st.header("1. PDF ta Upload Koren")
 uploaded = st.file_uploader("Ekta PDF chose koren", type=["pdf"], accept_multiple_files=False)
 
 if uploaded is not None:
-    if st.button("🚀 Ingest Kore Den!"):
+    if st.button("🚀 Ingest Kore Den!(ekta pdf sudhu matro ekbar inngest korlei jothesto)"):
         loader_slot = st.empty()
         with loader_slot.container():
             khuj_loader("Upload hocche")
