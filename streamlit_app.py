@@ -7,6 +7,7 @@ import inngest
 from dotenv import load_dotenv
 import os
 import requests
+import base64
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
@@ -190,22 +191,16 @@ def get_inngest_client() -> inngest.Inngest:
     )
 
 
-def save_uploaded_pdf(file) -> Path:
-    uploads_dir = Path("uploads")
-    uploads_dir.mkdir(parents=True, exist_ok=True)
-    file_path = uploads_dir / file.name
-    file_path.write_bytes(file.getbuffer())
-    return file_path
-
-
-async def send_rag_ingest_event(pdf_path: Path) -> None:
+async def send_rag_ingest_event(file) -> None:
     client = get_inngest_client()
+    file_bytes = file.getbuffer()
+    encoded = base64.b64encode(file_bytes).decode("utf-8")
     await client.send(
         inngest.Event(
             name="rag/ingest_pdf",
             data={
-                "pdf_path": str(pdf_path.resolve()),
-                "source_id": pdf_path.name,
+                "pdf_base64": encoded,
+                "source_id": file.name,
             },
         )
     )
@@ -231,8 +226,7 @@ def _inngest_api_base() -> str:
 
 def fetch_runs(event_id: str) -> list[dict]:
     url = f"{_inngest_api_base()}/events/{event_id}/runs"
-    event_key = os.getenv("INNGEST_EVENT_KEY", "")
-    headers = {"Authorization": f"Bearer {event_key}"} if event_key else {}
+    headers = {"Authorization": f"Bearer {os.getenv('INNGEST_SIGNING_KEY')}"}
     resp = requests.get(url, headers=headers)
     resp.raise_for_status()
     data = resp.json()
@@ -263,15 +257,13 @@ st.header("1. PDF ta Upload Koren")
 uploaded = st.file_uploader("Ekta PDF chose koren", type=["pdf"], accept_multiple_files=False)
 
 if uploaded is not None:
-    if st.button("🚀 Ingest Kore Den! (ekta pdf sudhu matro ekbar inngest korlei jothesto)"):
+    if st.button("🚀 Ingest Kore Den!"):
         loader_slot = st.empty()
         with loader_slot.container():
             khuj_loader("Upload hocche")
-        path = save_uploaded_pdf(uploaded)
-        asyncio.run(send_rag_ingest_event(path))
+        asyncio.run(send_rag_ingest_event(uploaded))
         loader_slot.empty()
-        st.success(f"Hoye Gèche!: {path.name} 🎉")
-        st.caption("Ektu wait koren....")
+        st.success(f"Hoye Gèche!: {uploaded.name} 🎉")
 
 st.divider()
 

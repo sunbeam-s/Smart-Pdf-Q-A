@@ -1,6 +1,8 @@
 import logging
 import os
 import uuid
+import base64
+import tempfile
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -32,9 +34,13 @@ inngest_client = inngest.Inngest(
 async def rag_ingest_pdf(ctx: inngest.Context):
 
     def _load(ctx: inngest.Context) -> RAGChunkandSrc:
-        pdf_path = ctx.event.data["pdf_path"]
-        source_id = ctx.event.data.get("source_id", pdf_path)
-        chunks = load_and_chunk_pdf(pdf_path)
+        pdf_b64 = ctx.event.data["pdf_base64"]
+        source_id = ctx.event.data.get("source_id", "upload.pdf")
+        pdf_bytes = base64.b64decode(pdf_b64)
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp.write(pdf_bytes)
+            tmp_path = tmp.name
+        chunks = load_and_chunk_pdf(tmp_path)
         return RAGChunkandSrc(chunks=chunks, source_id=source_id)
 
     def _upsert(chunks_and_src: RAGChunkandSrc) -> RAGUpsertResult:
